@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Launcher</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #0b0f1a;
+    background: radial-gradient(ellipse at 20% 0%, #1b2440 0%, #0b0f1a 60%);
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
+  }
+  .top {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding: 4vh 5vw 0;
+  }
+  .clock { font-size: 7vh; font-weight: 700; letter-spacing: 1px; }
+  .date  { font-size: 2.6vh; color: #9aa6c4; margin-top: 0.5vh; }
+  .greet { font-size: 3vh; color: #9aa6c4; }
+  h2 { margin: 6vh 5vw 2vh; font-size: 2.8vh; color: #9aa6c4; font-weight: 400; text-transform: uppercase; letter-spacing: 3px; }
+  .grid {
+    display: flex; flex-wrap: wrap;
+    padding: 0 4vw;
+  }
+  .tile {
+    display: block; text-decoration: none; color: #fff;
+    width: 21vw; height: 26vh; margin: 1.2vw;
+    border-radius: 18px;
+    position: relative; overflow: hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+    outline: none;
+    border: 4px solid transparent;
+  }
+  .tile .glyph {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 5.5vh;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9vh; font-weight: 800;
+  }
+  .tile .label {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 5.5vh;
+    background: rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.6vh; font-weight: 600;
+  }
+  .tile:focus, .tile.focus {
+    transform: scale(1.08);
+    border-color: #fff;
+    box-shadow: 0 0 40px rgba(255,255,255,.35);
+    z-index: 2;
+  }
+  .hint { position: fixed; bottom: 2.5vh; left: 0; right: 0; text-align: center; color: #5d6a8a; font-size: 2.2vh; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div>
+      <div class="greet" id="greet"></div>
+      <div class="clock" id="clock"></div>
+      <div class="date" id="date"></div>
+    </div>
+  </div>
+
+  <h2>Apps</h2>
+  <div class="grid" id="grid"></div>
+
+  <div class="hint">Use the arrow keys on your remote &middot; OK to open</div>
+
+<script>
+// ====== EDIT THIS LIST to change your tiles ======
+// name: label on the tile | url: where it opens | color: tile background | glyph: big letter/emoji
+var APPS = [
+  { name: "YouTube",     url: "https://www.youtube.com/tv",      color: "#c4302b", glyph: "\u25B6" },
+  { name: "Netflix",     url: "https://www.netflix.com/browse",  color: "#b20710", glyph: "N" },
+  { name: "Prime Video", url: "https://www.primevideo.com",      color: "#146eb4", glyph: "P" },
+  { name: "Disney+",     url: "https://www.disneyplus.com",      color: "#113ccf", glyph: "D+" },
+  { name: "Spotify",     url: "https://open.spotify.com",        color: "#1db954", glyph: "\u266B" },
+  { name: "Twitch",      url: "https://www.twitch.tv",           color: "#6441a5", glyph: "T" },
+  { name: "Google",      url: "https://www.google.com",          color: "#3b6fd4", glyph: "G" },
+  { name: "News",        url: "https://news.google.com",         color: "#2a2f45", glyph: "\u2263" }
+];
+var YOUR_NAME = ""; // optional, e.g. "Sam"
+// =================================================
+
+var grid = document.getElementById("grid");
+var tiles = [];
+
+APPS.forEach(function (app) {
+  var a = document.createElement("a");
+  a.className = "tile";
+  a.href = app.url;
+  a.style.background = app.color;
+  a.innerHTML = '<div class="glyph"></div><div class="label"></div>';
+  a.querySelector(".glyph").textContent = app.glyph;
+  a.querySelector(".label").textContent = app.name;
+  grid.appendChild(a);
+  tiles.push(a);
+});
+
+var idx = 0;
+function focusTile(i) {
+  if (i < 0 || i >= tiles.length) return;
+  idx = i;
+  tiles[idx].focus();
+}
+focusTile(0);
+
+function perRow() {
+  if (tiles.length < 2) return 1;
+  var top = tiles[0].offsetTop, n = 0;
+  for (var i = 0; i < tiles.length; i++) {
+    if (tiles[i].offsetTop === top) n++; else break;
+  }
+  return n || 1;
+}
+
+document.addEventListener("keydown", function (e) {
+  var k = e.keyCode, r = perRow();
+  if (k === 39) { focusTile(idx + 1); e.preventDefault(); }
+  else if (k === 37) { focusTile(idx - 1); e.preventDefault(); }
+  else if (k === 40) { focusTile(Math.min(idx + r, tiles.length - 1)); e.preventDefault(); }
+  else if (k === 38) { focusTile(Math.max(idx - r, 0)); e.preventDefault(); }
+  else if (k === 13) { window.location.href = APPS[idx].url; e.preventDefault(); }
+});
+
+// keep focus if the user clicks with a pointer-style remote
+tiles.forEach(function (t, i) {
+  t.addEventListener("mouseenter", function () { focusTile(i); });
+});
+
+function pad(n) { return n < 10 ? "0" + n : "" + n; }
+function tick() {
+  var d = new Date();
+  document.getElementById("clock").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
+  var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  document.getElementById("date").textContent = days[d.getDay()] + ", " + d.getDate() + " " + months[d.getMonth()];
+  var h = d.getHours();
+  var g = h < 12 ? "Good morning" : (h < 18 ? "Good afternoon" : "Good evening");
+  document.getElementById("greet").textContent = g + (YOUR_NAME ? ", " + YOUR_NAME : "");
+}
+tick();
+setInterval(tick, 20000);
+</script>
+</body>
+</html>
